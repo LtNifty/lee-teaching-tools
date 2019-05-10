@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.swing.JOptionPane;
@@ -15,8 +16,8 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -121,12 +122,19 @@ public class Main extends Application {
 			border.setBottom(botLbl);
 			botLbl.setStyle("-fx-text-fill:red");
 
-			brokenVBox.getChildren().add(new Label("Broken PC List"));
+			brokenVBox.getChildren().add(new Label("Ignore PC List"));
 			brokenVBox.setPadding(new Insets(10,10,10,10));
 			brokenVBox.setPrefHeight(300);
 
+			brokenStage.setScene(new Scene(brokenVBox));
+			brokenStage.initStyle(StageStyle.UNDECORATED);
+			brokenStage.setX(850);
+			brokenStage.setY(210);
+			brokenStage.show();
+
 			// Sets up scene && primaryStage
 			primaryStage.setTitle("Lee's Teacher Tools");
+			primaryStage.initStyle(StageStyle.UTILITY);
 			primaryStage.setScene(new Scene(border));
 			primaryStage.setResizable(false);
 			primaryStage.show();
@@ -136,16 +144,6 @@ public class Main extends Application {
 				}
 			});
 
-			brokenStage.setScene(new Scene(brokenVBox));
-			brokenStage.setX(primaryStage.getX() + 375);
-			brokenStage.setY(primaryStage.getY());
-			brokenStage.show();
-			brokenStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-				@Override
-				public void handle(WindowEvent event) {
-					event.consume();
-				}
-			});
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -154,7 +152,7 @@ public class Main extends Application {
 		// declare && initialize all variables
 		VBox vbox = new VBox();
 		Button randButton = new Button("Randomize");
-		Button pcButton = new Button("Broken Computer");
+		Button pcButton = new Button("Ignore Computers");
 
 		// sets up "Broken Computer" button &&
 		// its on click event
@@ -166,7 +164,7 @@ public class Main extends Application {
 						BorderPane border = new BorderPane();
 						VBox vbox = new VBox();
 						TextField text = new TextField();
-						Button b = new Button("Remove from List");
+						Button b = new Button("Add to Ignore List");
 						Button b2 = new  Button("Return");
 						Label lbl = new Label();
 
@@ -176,8 +174,8 @@ public class Main extends Application {
 							@Override
 							public void changed(ObservableValue<? extends String> observable, String oldValue,
 									String newValue) {
-								if (!newValue.matches("\\d*") || !newValue.matches(" ") || !newValue.matches("-")) {
-									text.setText(newValue.replaceAll("[^\\d, , -]", ""));
+								if (!newValue.matches("\\d*") || !newValue.matches(" ") || !newValue.matches("-") || !newValue.matches(":")) {
+									text.setText(newValue.replaceAll("[^\\d, ,-,:]", ""));
 								}
 							}
 						});
@@ -214,17 +212,17 @@ public class Main extends Application {
 
 						// setup BorderPane
 						border.setPadding(new Insets(10,10,10,10));
-						border.setTop(new Label("Enter the seat number with the broken computer."
-								+ "\nUse spaces to add multiple seat numbers."
-								+ "\nUse negatives to remove PCs from the list."));
+						border.setTop(new Label("Enter the seat numbers you wish to ignore when generating the list."
+								+ "\nUse commas to add multiple seats. Use negatives to remove seats."));
 						border.setCenter(text);
 						border.setBottom(lbl);
 						border.setRight(vbox);
 						lbl.setStyle("-fx-text-fill:red");
 
 						// setup primaryStage
+						primaryStage.initStyle(StageStyle.UTILITY);
 						primaryStage.setScene(new Scene(border));
-						primaryStage.setTitle("Broken Computer");
+						primaryStage.setTitle("Ignore Computers");
 						primaryStage.setResizable(false);
 						primaryStage.show();
 					}
@@ -246,60 +244,49 @@ public class Main extends Application {
 		vbox.setAlignment(Pos.CENTER);
 		return vbox;
 	}
-	private void handlePC(Label lbl, TextField text, Stage primaryStage) {
+	private boolean handlePC(Label lbl, TextField text, Stage primaryStage) {
+		@SuppressWarnings("resource")
 		Scanner scan = new Scanner(text.getText());
-		boolean problem = false;
-		int num = 0;
-		while (scan.hasNext() && problem == false) {
-			String str = scan.next();
-			if (str.length() > 10) {
-				problem = true;
-				lbl.setText("ERROR: input is too large! (11 char limit)");
-				break;
-			}
-			try {
-				num = Integer.parseInt(str);
-			} catch (Exception e) {
-				problem = true;
-				lbl.setText("ERROR: Input error. Likely from \"-\" signs.");
-				break;
-			}
-			if (num > 99 || num == 0) {
-				problem = true;
-				lbl.setText("ERROR: " + num + " is out of range! (1 - 99)");
-			}
-			else if (num < 0) {
-				if (this.ignore.contains((Integer) Math.abs(num)) == false) {
-					problem = true;
-					lbl.setText("ERROR: PC #" + Math.abs(num) + " is not listed as broken!");
-				}
-				else
-					for (int i = 0; i < brokenVBox.getChildren().size(); i++) {
-						Label l = (Label) brokenVBox.getChildren().get(i);
-						for (int j = 0; j < ignore.size(); j++) {
-							if (l.getText().equals("Broken PC List"))
-								continue;
-							if (Integer.parseInt(l.getText().substring(4)) == ignore.get(j)) {
-								brokenVBox.getChildren().remove(i);
-								ignore.remove((Object) Integer.parseInt(l.getText().substring(4)));
-							}
-						}
-					}
-			}
-			else if (ignore.contains(num)) {
-				problem = true;
-				lbl.setText("ERROR: " + num + " is already accounted for!");
-			}
-			else {
-				ignore.add(num);
-				brokenVBox.getChildren().add(new Label("PC #" + num));
-			}
-		}
+		scan.useDelimiter(Pattern.compile("\\s*(,)\\s*"));
 
-		if (problem == false) {
-			scan.close();
-			primaryStage.close();
+		while (scan.hasNext()) {
+			String str = scan.next();
+			if (str.contains(":")) {
+				int bot = Integer.parseInt(str.substring(0, str.indexOf(":")));
+				int top = Integer.parseInt(str.substring(str.indexOf(":") + 1));
+			}
+			if (isGoodInput(lbl, str) == false)
+				return false;
 		}
+		return true;
+	}
+	private boolean isGoodInput(Label lbl, String str) {
+		int num = 0;
+		if (str.length() > 9) {
+			lbl.setText("ERROR: input is too large! (9 char limit)");
+			return false;
+		}
+		try {
+			num = Integer.parseInt(str);
+		} catch (Exception e) {
+			lbl.setText("ERROR: Input error. Likely from \"-\" signs.");
+			return false;
+		}
+		if (num > 99 || num == 0) {
+			lbl.setText("ERROR: " + num + " is out of range! (1 - 99)");
+			return false;
+		}
+		else if (ignore.contains(num)) {
+			lbl.setText("ERROR: " + num + " is already accounted for!");
+			return false;
+		}
+		else if (num < 0) {
+			if (this.ignore.contains(Math.abs(num)) == false) {
+				lbl.setText("ERROR: PC #" + Math.abs(num) + " is not listed as broken!");
+				return false;
+			}
+		}
+		return true;
 	}
 	private boolean genList() {
 		/* WHY BOOLEAN RETURN TYPE:
@@ -312,7 +299,7 @@ public class Main extends Application {
 		 */
 
 		// declare && initialize all variables
-		int numOfPC = 0, numOfStu = 0;
+		int numOfPC = 0, numOfStu = 0, sum;
 
 		// checks to make sure the
 		// textfields aren't empty
@@ -335,7 +322,7 @@ public class Main extends Application {
 
 		// checks that there are enough
 		// computers for the students
-		int sum = numOfPC - ignore.size();
+		sum = numOfPC - ignore.size();
 		if (sum < numOfStu) {
 			if (sum < 0)
 				sum = 0;
@@ -362,7 +349,7 @@ public class Main extends Application {
 			int count = 0;
 			for (int i = 0; i < numOfPC; i++) {
 				if (ignore.contains(i+1))
-					vbox.getChildren().add(new Label("Seat " + (i + 1) + ":\tBROKEN"));
+					vbox.getChildren().add(new Label("Seat " + (i + 1) + ":\tIGNORE"));
 				else if (count >= numOfStu)
 					vbox.getChildren().add(new Label("Seat " + (i + 1) + ":\t---"));
 				else {
@@ -373,8 +360,8 @@ public class Main extends Application {
 
 			// setups vbox, scene, && primaryStage
 			vbox.setPadding(new Insets(10, 10, 10, 10));
-			Scene scene = new Scene(vbox);
-			primaryStage.setScene(scene);
+			primaryStage.initStyle(StageStyle.UTILITY);
+			primaryStage.setScene(new Scene(vbox));
 			primaryStage.setResizable(false);
 			primaryStage.show();
 		}
